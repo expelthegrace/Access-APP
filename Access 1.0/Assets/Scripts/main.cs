@@ -18,7 +18,11 @@ public class main : MonoBehaviour
     public string username = "quy910";
     public string password = "C0sm02019";
     public string dbname = "quy910";
+    public string tableConvidats = "accesstest";
+    public string tableStands = "accesstestStands";
 
+    //Global
+    public string queryResult = "--";
 
     void Start()
     {
@@ -36,11 +40,16 @@ public class main : MonoBehaviour
 
     public void InserNewMarc()
     {
-        string query = "UPDATE " + eventname + " SET APELLIDO1 = '" + System.DateTime.Now.ToString() + "' where CODIGO_BARRAS = '05/12/2019 18:34:17' ;";
-        StartCoroutine(ExecuteQuery(query));
+        //string query = "UPDATE " + eventname + " SET APELLIDO1 = '" + System.DateTime.Now.ToString() + "' where CODIGO_BARRAS = '05/12/2019 18:34:17' ;";
+        string query = "SELECT * FROM " + tableConvidats;
+       
+        StartCoroutine(ExecuteQuery(query, "ID|NOMBRE|APELLIDO1"));
+
+        //It has to go to the update function
+        //debugText.text = queryResult;
     }
 
-    IEnumerator ExecuteQuery(string query)
+    IEnumerator ExecuteQuery(string query, string returnFields = "CODIGO_BARRAS")
     {
         if (query != "")
         {
@@ -50,6 +59,7 @@ public class main : MonoBehaviour
             form.AddField("password",password);
             form.AddField("dbname", dbname);
             form.AddField("query", query);
+            form.AddField("returnFields", returnFields);
 
             UnityWebRequest www = UnityWebRequest.Post("https://yourstats.es/Unity_App/scripts/query.php", form);
             while (!www.isDone)
@@ -58,9 +68,9 @@ public class main : MonoBehaviour
             }
 
             var data = www.downloadHandler.text;
+            
+            queryResult = data.ToString();
 
-            Debug.Log("Result" + data.ToString());
-            debugText.text = data.ToString();
         }
     }
 
