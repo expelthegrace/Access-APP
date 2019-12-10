@@ -13,9 +13,10 @@ public class main : MonoBehaviour
     [SerializeField]
     public RawImage camImage;
 
-    //Buttons
+    //UI
     public Button scanButton;
     public Button stopScanButton;
+    public Image checkImage;
 
     //Credentials data
     public string eventname = "accesstest";
@@ -26,16 +27,31 @@ public class main : MonoBehaviour
 
     public string tableConvidats = "accesstest";
     public string tableStands = "accesstestStands";
-    public string standName = "ingeniastand3";
+    public string standName = "ingeniastand5";
 
     //Global
-    public string QRlecture = "111";
 
     public string queryResult = "--";
+    public string lastBarcodeValue = "123";
 
     private bool queryEnded = false;
     private bool runningQuery = false;
+    private bool QRscanned = false;
+    private bool runningQRscanned = false;
+
     private string lastQueryName = "";
+
+    //Timers
+    float lastCheckImage = 0;
+    float timeBetweenCaptures = 2f;
+
+    //Audio
+    public AudioSource QRbeepedAudio;
+
+    IEnumerator StartAuthorization()
+    {
+        yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
+    }
 
     void Start()
     {
@@ -44,11 +60,25 @@ public class main : MonoBehaviour
         //comentar si android
         StartCoroutine(StartAuthorization());
         debugText.text = "";
+
+        stopScanButton.gameObject.SetActive(false);
+        scanButton.gameObject.SetActive(true);
+        checkImage.gameObject.SetActive(false);
+
+        camImage.gameObject.SetActive(false);
+
+        scanButton.gameObject.SetActive(true);
     }
 
-    public void Update()
+    public void QRreading()
     {
-        // Since DDBB calls are coroutines the followeing system manages when these coroutines are finished
+        if (QRscanned)
+        {
+            columnStandExists();
+            QRscanned = false;
+        }
+
+        // Since DDBB calls are coroutines the following system manages when these coroutines are finished
         //When a DDBB corotutine is called its called alongisde a name, this name is checked here to trigger the proper response to the finished coroutine
         if (queryEnded && !runningQuery)
         {
@@ -59,45 +89,57 @@ public class main : MonoBehaviour
                 case "checkColumnExists":
                     Debug.Log("columnsheck result: " + queryResult);
                     if (queryResult == "0|\n") AddColumn();
-                    else checkColumnStand();
+                    else markColumnStand();
                     break;
                 //Called if needed to add stand column
                 case "addColumnStand":
-                    checkColumnStand();
+                    markColumnStand();
+                    break;
+                case "markColumnStand":
+                    runningQRscanned = false;
+                    debugText.text = "Last Scann:" + System.DateTime.Now.ToString();
+                    checkImage.gameObject.SetActive(true);
+                    lastCheckImage = Time.realtimeSinceStartup;
+                    QRbeepedAudio.Play();
                     break;
             }
 
             queryEnded = false;
         }
+
     }
 
+    public void Update()
+    {
+        //Reading page
+        QRreading();
+        if (checkImage.IsActive() && Time.realtimeSinceStartup - lastCheckImage > timeBetweenCaptures)
+        {
+            checkImage.gameObject.SetActive(false);
+        }
+    }
+
+    //Creates column on the BBDD with the name of the stand
     void AddColumn()
     {
-        Debug.Log("1111 ");
-        string sql = "ALTER TABLE " + dbname + "." + tableConvidats + " ADD COLUMN " + standName + " VARCHAR(1) NOT NULL DEFAULT 0";
+        string sql = "ALTER TABLE " + dbname + "." + tableConvidats + " ADD COLUMN " + standName + " VARCHAR(30) NOT NULL DEFAULT 0";
         StartCoroutine(ExecuteQuery(sql, "addColumnStand"));
     }
 
-    void checkColumnStand()
+    //Sets to 1 the column of the stand in the participant with the scanned code
+    void markColumnStand()
     {
-        Debug.Log("222 ");
-        string sql = "UPDATE " + dbname + "." + tableConvidats + " SET " + standName + " = 1 WHERE CODIGO_BARRAS = " + QRlecture;
-        StartCoroutine(ExecuteQuery(sql, "checkColumnStand"));
+        string sql = "UPDATE " + dbname + "." + tableConvidats + " SET " + standName + " = 1 WHERE CODIGO_BARRAS = " + lastBarcodeValue;
+        StartCoroutine(ExecuteQuery(sql, "markColumnStand"));
     }
 
-    public void checkAssistant(string barcodevalue)
+    //Check if a column with the stand name already exists
+    public void columnStandExists()
     {
         string sql = "SELECT COUNT(*) AS TOTAL FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableConvidats + "' AND COLUMN_NAME = '" + standName + "'";
         StartCoroutine(ExecuteQuery(sql, "checkColumnExists", "TOTAL"));
 
-        //The secuence continues in Update()
     }
-
-    IEnumerator StartAuthorization()
-    {
-        yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
-    }
-
 
     IEnumerator ExecuteQuery(string query, string queryName, string returnFields = "CODIGO_BARRAS")
     {
@@ -129,10 +171,11 @@ public class main : MonoBehaviour
         }
     }
 
-    IEnumerator ExecuteMultiQuery(string query, string returnFields = "CODIGO_BARRAS")
+    IEnumerator ExecuteMultiQuery(string query, string queryName, string returnFields = "CODIGO_BARRAS")
     {
         if (query != "")
         {
+            runningQuery = true;
             WWWForm form = new WWWForm();
             form.AddField("servername",servername);
             form.AddField("username",username);
@@ -147,7 +190,8 @@ public class main : MonoBehaviour
                 yield return www.SendWebRequest();
             }
 
-
+            runningQuery = false;
+            queryEnded = true;
             var data = www.downloadHandler.text;
             
             queryResult = data.ToString();
@@ -157,10 +201,10 @@ public class main : MonoBehaviour
 
     public void Scan()
     {
-        stopScanButton.enabled = true;
-        scanButton.enabled = false;
+        stopScanButton.gameObject.SetActive(true);
+        scanButton.gameObject.SetActive(false);
 
-        camImage.enabled = true;
+        camImage.gameObject.SetActive(true);
         if (camImage)
         {
             QRCodeManager.CameraSettings camSettings = new QRCodeManager.CameraSettings();
@@ -178,15 +222,13 @@ public class main : MonoBehaviour
         }
     }
 
-
-
     public void StopScanning()
     {
         QRCodeManager.Instance.StopScanning();
-        camImage.enabled = false;
+        camImage.gameObject.SetActive(false);
 
-        stopScanButton.enabled = false;
-        scanButton.enabled = true;
+        stopScanButton.gameObject.SetActive(false);
+        scanButton.gameObject.SetActive(true);
     }
 
     void OnEnable()
@@ -204,7 +246,12 @@ public class main : MonoBehaviour
     void HandleOnQRCodeFound(ZXing.BarcodeFormat barCodeType, string barCodeValue)
     {
         Debug.Log(barCodeType + " __ " + barCodeValue);
-       // debugText.text = barCodeValue;
+        lastBarcodeValue = barCodeValue;
+        if (!runningQRscanned && !checkImage.IsActive())
+        {
+            QRscanned = true;
+            runningQRscanned = true;
+        }
     }
 
     void HandleOnError(string err)
