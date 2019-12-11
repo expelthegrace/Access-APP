@@ -4,11 +4,12 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using QRCodeReaderAndGenerator;
+using System;
 
 public class main : MonoBehaviour
 {
-    [SerializeField]
-    public Text debugText;
+    
+    string debugText;
 
     [SerializeField]
     public RawImage camImage;
@@ -18,16 +19,29 @@ public class main : MonoBehaviour
     public Button stopScanButton;
     public Image checkImage;
 
+    public GameObject panelLogin;
+    public GameObject panelScan;
+
+    public GameObject loginErrorTexts;
+
+    public InputField eventNameInput;
+    public InputField standPasswordInput;
+
+    public Text scanText;
+
     //Credentials data
     public string eventname = "accesstest";
-    public string servername = "quy910.yourstats.es";
-    public string username = "quy910";
-    public string password = "C0sm02019";
-    public string dbname = "quy910";
 
     public string tableConvidats = "accesstest";
     public string tableStands = "accesstestStands";
     public string standName = "ingeniastand5";
+
+
+    //Private credencials
+    public string servername = "quy910.yourstats.es";
+    public string username = "quy910";
+    public string password = "C0sm02019";
+    public string dbname = "quy910";
 
     //Global
 
@@ -48,29 +62,60 @@ public class main : MonoBehaviour
     //Audio
     public AudioSource QRbeepedAudio;
 
+    enum iuPanel
+    {
+        Login,
+        Scan
+    };
+
+    iuPanel actualPanel;
+
     IEnumerator StartAuthorization()
     {
         yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
     }
 
-    void Start()
+    void changePanel(iuPanel target)
     {
-        // StartCoroutine(GetData());
+        StopScanning();
+        panelLogin.gameObject.SetActive(false);
+        panelScan.gameObject.SetActive(false);
 
-        //comentar si android
-        StartCoroutine(StartAuthorization());
-        debugText.text = "";
+        switch (target)
+        {
+            case iuPanel.Login:
+                panelLogin.gameObject.SetActive(true);
+                loginErrorTexts.gameObject.SetActive(false);
+                break;
+            case iuPanel.Scan:
+                panelScan.gameObject.SetActive(true);
 
-        stopScanButton.gameObject.SetActive(false);
-        scanButton.gameObject.SetActive(true);
-        checkImage.gameObject.SetActive(false);
+                stopScanButton.gameObject.SetActive(false);
+                scanButton.gameObject.SetActive(true);
+                checkImage.gameObject.SetActive(false);
 
-        camImage.gameObject.SetActive(false);
+                camImage.gameObject.SetActive(false);
 
-        scanButton.gameObject.SetActive(true);
+                scanButton.gameObject.SetActive(true);
+                break;
+        }
+
+        actualPanel = target;
     }
 
-    public void QRreading()
+    void Start()
+    {
+        
+        changePanel(iuPanel.Login);
+
+        StartCoroutine(StartAuthorization());
+        debugText = "";
+        scanText.text = "";
+
+       
+    }
+
+    public void CoroutineManager()
     {
         if (QRscanned)
         {
@@ -97,10 +142,20 @@ public class main : MonoBehaviour
                     break;
                 case "markColumnStand":
                     runningQRscanned = false;
-                    debugText.text = "Last Scann:" + System.DateTime.Now.ToString();
+                    scanText.text = "Last Scann:" + System.DateTime.Now.ToString();
                     checkImage.gameObject.SetActive(true);
                     lastCheckImage = Time.realtimeSinceStartup;
                     QRbeepedAudio.Play();
+                    break;
+                case "login":
+                    var result = queryResult.Split('|');
+                     Debug.Log(result[0]);
+                    if (result[0] != "" && result[0].Split(':')[0] != "ERROR")
+                    {
+                        ConsolidateCredentials(result[0]);
+                        changePanel(iuPanel.Scan);
+                    }
+                    else LoginError();
                     break;
             }
 
@@ -109,10 +164,34 @@ public class main : MonoBehaviour
 
     }
 
+    private void LoginError()
+    {
+        debugText += queryResult;
+        loginErrorTexts.gameObject.SetActive(true);
+    }
+    public void AcceptLoginError()
+    {
+        loginErrorTexts.gameObject.SetActive(true);
+    }
+
+    private void ConsolidateCredentials(string standname)
+    {
+        tableConvidats = eventNameInput.text;
+        tableStands = tableConvidats + "Stands";
+        standName = standname;
+    }
+
+    public void LogIn()
+    {
+        string sql = "SELECT name FROM " + eventNameInput.text + "Stands" + " WHERE password = " + standPasswordInput.text;
+        Debug.Log("bame i pass: " + eventNameInput.text + "," + standPasswordInput.text);
+        StartCoroutine(ExecuteQuery(sql, "login", "name"));
+    }
+
     public void Update()
     {
-        //Reading page
-        QRreading();
+
+        CoroutineManager();
         if (checkImage.IsActive() && Time.realtimeSinceStartup - lastCheckImage > timeBetweenCaptures)
         {
             checkImage.gameObject.SetActive(false);
@@ -167,7 +246,7 @@ public class main : MonoBehaviour
             lastQueryName = queryName;
 
             queryResult = data.ToString();
-            debugText.text = queryResult;
+          
         }
     }
 
@@ -195,7 +274,7 @@ public class main : MonoBehaviour
             var data = www.downloadHandler.text;
             
             queryResult = data.ToString();
-            debugText.text = queryResult;
+           
         }
     }
 
