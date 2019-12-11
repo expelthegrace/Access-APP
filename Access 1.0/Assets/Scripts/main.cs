@@ -21,6 +21,7 @@ public class main : MonoBehaviour
 
     public GameObject panelLogin;
     public GameObject panelScan;
+    public GameObject panelDebug;
 
     public GameObject loginErrorTexts;
 
@@ -28,25 +29,26 @@ public class main : MonoBehaviour
     public InputField standPasswordInput;
 
     public Text scanText;
+    public Text debugTextIU;
 
     //Credentials data
-    public string eventname = "accesstest";
+    private string eventname;
 
-    public string tableConvidats = "accesstest";
-    public string tableStands = "accesstestStands";
-    public string standName = "ingeniastand5";
+    private string tableConvidats;
+    private string tableStands;
+    private string standName;
 
 
     //Private credencials
-    public string servername = "quy910.yourstats.es";
-    public string username = "quy910";
-    public string password = "C0sm02019";
-    public string dbname = "quy910";
+    private string servername = "quy910.yourstats.es";
+    private string username = "quy910";
+    private string password = "C0sm02019";
+    private string dbname = "quy910";
 
     //Global
 
-    public string queryResult = "--";
-    public string lastBarcodeValue = "123";
+    public string queryResult = "";
+    public string lastBarcodeValue;
 
     private bool queryEnded = false;
     private bool runningQuery = false;
@@ -65,14 +67,27 @@ public class main : MonoBehaviour
     enum iuPanel
     {
         Login,
-        Scan
+        Scan,
+        Debug
     };
 
+    //Panels
     iuPanel actualPanel;
+    iuPanel lastPanel;
 
     IEnumerator StartAuthorization()
     {
         yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
+    }
+
+    void Start()
+    {
+
+        changePanel(iuPanel.Login);
+
+        StartCoroutine(StartAuthorization());
+        debugText = "";
+        scanText.text = "";
     }
 
     void changePanel(iuPanel target)
@@ -80,6 +95,7 @@ public class main : MonoBehaviour
         StopScanning();
         panelLogin.gameObject.SetActive(false);
         panelScan.gameObject.SetActive(false);
+        panelDebug.gameObject.SetActive(false);
 
         switch (target)
         {
@@ -98,22 +114,15 @@ public class main : MonoBehaviour
 
                 scanButton.gameObject.SetActive(true);
                 break;
+            case iuPanel.Debug:
+                panelDebug.gameObject.SetActive(true);
+                break;
         }
 
         actualPanel = target;
     }
 
-    void Start()
-    {
-        
-        changePanel(iuPanel.Login);
 
-        StartCoroutine(StartAuthorization());
-        debugText = "";
-        scanText.text = "";
-
-
-    }
 
     public void CoroutineManager()
     {
@@ -127,12 +136,10 @@ public class main : MonoBehaviour
         //When a DDBB corotutine is called its called alongisde a name, this name is checked here to trigger the proper response to the finished coroutine
         if (queryEnded && !runningQuery)
         {
-            Debug.Log("rountine finished: " + lastQueryName);
             switch (lastQueryName)
             {
                 //Called after checking if the stand column exists
                 case "checkColumnExists":
-                    Debug.Log("columnsheck result: " + queryResult);
                     if (queryResult == "0|\n") AddColumn();
                     else markColumnStand();
                     break;
@@ -149,7 +156,6 @@ public class main : MonoBehaviour
                     break;
                 case "login":
                     var result = queryResult.Split('|');
-                     Debug.Log(result[0]);
                     if (result[0] != "" && result[0].Split(':')[0] != "ERROR")
                     {
                         ConsolidateCredentials(result[0]);
@@ -184,7 +190,6 @@ public class main : MonoBehaviour
     public void LogIn()
     {
         string sql = "SELECT name FROM " + eventNameInput.text + "Stands" + " WHERE password = " + standPasswordInput.text;
-        Debug.Log("bame i pass: " + eventNameInput.text + "," + standPasswordInput.text);
         StartCoroutine(ExecuteQuery(sql, "login", "name"));
     }
 
@@ -250,7 +255,9 @@ public class main : MonoBehaviour
 
             //Global where holds the query return
             queryResult = data.ToString();
-          
+
+            var result = queryResult.Split('|');
+            if (result[0].Split(':')[0] == "ERROR") debugText += queryResult + "\n";
         }
     }
 
@@ -353,5 +360,41 @@ public class main : MonoBehaviour
             }
         }
         return null;
+    }
+
+    public void debugPanelButton()
+    {
+        if (actualPanel == iuPanel.Login || actualPanel == iuPanel.Scan)
+        {
+            debugTextIU.text = "eventname: " + eventname + "\n" +
+                "tableconvidats: " + tableConvidats + "\n" +
+                "tableStands: " + tableStands + "\n" +
+                "standName: " + standName + "\n" +
+                //"servername: " + servername + "\n" +
+                //"username: " + username + "\n" +
+                //"password: " + password + "\n" +
+                //"dbname: " + dbname + "\n" +
+                "---------------------------------\n";
+            debugTextIU.text += debugText;
+
+            lastPanel = actualPanel;
+            changePanel(iuPanel.Debug);
+        }
+        else changePanel(lastPanel);
+    }
+
+    public void clearDebugText()
+    {
+        debugTextIU.text = "eventname: " + eventname + "\n" +
+               "tableconvidats: " + tableConvidats + "\n" +
+               "tableStands: " + tableStands + "\n" +
+               "standName: " + standName + "\n" +
+               //"servername: " + servername + "\n" +
+               //"username: " + username + "\n" +
+               //"password: " + password + "\n" +
+               //"dbname: " + dbname + "\n" +
+               "---------------------------------\n";
+        debugText = "";
+        debugTextIU.text += debugText;
     }
 }
