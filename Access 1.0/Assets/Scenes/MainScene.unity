@@ -431,7 +431,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1012654634}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -650,7 +650,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 1, y: 22}
+  m_AnchoredPosition: {x: 1, y: 61}
   m_SizeDelta: {x: 106.56, y: 108.73999}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &441683457
@@ -1304,8 +1304,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_Children:
-  - {fileID: 2080458992}
   - {fileID: 249364886}
+  - {fileID: 2080458992}
   - {fileID: 1903980811}
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -2002,9 +2002,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Stop Scan
-
-'
+  m_Text: Stop Scanning
 --- !u!222 &1451890995
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2428,7 +2426,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1903980811
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2546,7 +2544,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2080458992
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2565,7 +2563,7 @@ RectTransform:
   - {fileID: 1741636793}
   - {fileID: 441683456}
   m_Father: {fileID: 1012654634}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}

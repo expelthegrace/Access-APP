@@ -112,7 +112,7 @@ public class main : MonoBehaviour
         debugText = "";
         scanText.text = "";
 
-       
+
     }
 
     public void CoroutineManager()
@@ -220,6 +220,9 @@ public class main : MonoBehaviour
 
     }
 
+    //Query function that takes a query, a name for the query and the columns you want the server php script to return back to the app
+    //The return fields have to follow this patron: "return1" or "return1|return2|return3|etc..." and they are returned witht he same format
+    //Script is in yourstats.es/html/Unity_App/scripts/query.php
     IEnumerator ExecuteQuery(string query, string queryName, string returnFields = "CODIGO_BARRAS")
     {
         if (query != "")
@@ -245,6 +248,7 @@ public class main : MonoBehaviour
             queryEnded = true;
             lastQueryName = queryName;
 
+            //Global where holds the query return
             queryResult = data.ToString();
           
         }
@@ -336,6 +340,7 @@ public class main : MonoBehaviour
     void HandleOnError(string err)
     {
         Debug.LogError(err);
+        debugText += err;
     }
 
     string GetRearCamName()
